@@ -48,8 +48,18 @@ const INGR={meal_id:[{nombre,cantidad,precio,cat}],...};
 Pool: ~6-8 platos por slot (desayuno/comida/cena), mitad funcional mitad gourmet.
 Si hay comidas favoritas: incluir versiones fit. 1 gourmet "real" por semana con porción ajustada.
 El calendario HTML se genera con bucles JS (NO escribir HTML por cada día a mano).
-Cada opción: nombre, desc (1 línea), P/C/G/kcal, precio €, tiempo min, tipo.
-Al elegir: borde dorado, cierra desplegable.
+
+SELECCIÓN DE COMIDAS — MODAL POPUP (NO dropdown inline):
+Al hacer click en "Elegir" en un slot → se abre un MODAL a pantalla completa (overlay oscuro + panel centrado) con TODAS las opciones disponibles para ese slot.
+El modal muestra:
+- Título: "Elige tu [Desayuno/Comida/Cena] del [Lunes/etc]"
+- Grid de cards (2 columnas) con TODAS las opciones del pool para ese slot
+- Cada card muestra: nombre en grande, desc, macros (P/C/G/kcal), precio, tiempo, tipo (💪/👨‍🍳)
+- Card con borde dorado al hacer hover
+- Click en una card → selecciona y cierra modal
+- Botón X para cerrar sin elegir
+El modal debe tener scroll propio si hay muchas opciones.
+Estilo: fondo rgba(0,0,0,.85), panel con background #0c0c0c, bordes dorados, max-width 700px.
 
 ### CONTADOR DIARIO DE MACROS (debajo de cada columna del día)
 Barra que muestra: Calorías consumidas/objetivo, P consumida/objetivo, C/objetivo, G/objetivo.
@@ -81,6 +91,7 @@ Incluir calentamiento y enfriamiento.
 ## TAB 3: MI SUPLEMENTACIÓN
 Data en array: const SUPPS=[{nombre,icono,que,para,cuando,dosis,combo,aviso}]
 Cards expandibles generadas por bucle. Tabla rutina (mañana/mediodía/noche).
+IMPORTANTE: Usa SOLO la información de ingredientes y dosis proporcionada en el perfil del usuario. Si no hay datos específicos de un suplemento, muestra SOLO el nombre y "Consulta la etiqueta del producto para información detallada". NUNCA inventes composiciones, dosis ni ingredientes.
 
 ## TAB 4: MI PROGRESO
 HTML mínimo: formulario check-in visual (peso, energía/sueño/libido 1-10, notas).
@@ -196,6 +207,16 @@ export default async function handler(req, res) {
   }
 }
 
+// ═══════════════════════════════════════════════════════════════
+// Supplement data from product labels — UPDATE when labels provided
+// ═══════════════════════════════════════════════════════════════
+const SUPP_DATA = `
+- NMN MACA (Testosterone+): Ingredientes: Extracto de Maca Negra y Roja, L-Arginina, Taurina, Maltodextrina, Polvo de Asta de Ciervo, Extracto de Brócoli, Extracto de Semilla de Calabaza, Extracto de Hoja de Nabo. Dosis: 2 cápsulas al día. Tomar preferiblemente en ayunas por la mañana con agua. La L-Arginina mejora el flujo sanguíneo y la Maca Negra y Roja es adaptógena y apoya la producción hormonal natural.
+- Turkesterona & Tongkat Ali: Composición pendiente de etiqueta. Indicar: "Consulta la etiqueta del producto para composición y dosis."
+- Secret Drops (Rendimiento Sexual): Gotas orales 30ml. Fórmula con mezcla propietaria de ingredientes naturales con propiedades vasodilatadoras. Mejora el flujo sanguíneo, sensibilidad y rendimiento. Efecto relajante que reduce estrés y ansiedad. Dosis: unas gotas al día vía oral. Almacenar en lugar fresco y seco. Vida útil: 3 años.
+- Shilajit (Concentrado): Resina pura de Shilajit del Himalaya 600mg por toma. Contiene Ácido Fúlvico (75%+) y 85+ minerales traza (magnesio, zinc, selenio, hierro). Dosis: 1 toma al día, mezclar con agua, batido o comida. El ácido fúlvico maximiza la absorción de otros nutrientes y minerales. Vegano, sin OGM. Almacenar en lugar fresco.
+`;
+
 function buildUserPrompt(p) {
   const nivelDesc = p.experiencia_gym === 'principiante'
     ? 'PRINCIPIANTE (0-1 año) — ejercicios básicos, sin tempo'
@@ -215,6 +236,8 @@ NUTRICIÓN: ${p.comidas_dia || 3} comidas/día, supermercado ${p.supermercado ||
 COMIDAS FAVORITAS: ${p.comidas_favoritas || 'variado'} → incluir VERSIONES FIT de estas + 1 comida real/semana con porción ajustada
 
 SUPLEMENTOS: ${(p.suplementos || ['NMN MACA']).join(', ')}
+DATOS DE ETIQUETAS (usa SOLO esta info — si un campo dice "pendiente", pon "Consulta la etiqueta"):
+${SUPP_DATA}
 MEDICACIÓN: ${p.medicacion || 'ninguna'}
 NOTAS: ${p.notas || 'Ninguna'}
 

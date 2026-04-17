@@ -164,16 +164,9 @@ RECUERDA: Este plan es lo que diferencia a PRIMAL de cualquier marca de suplemen
 // ═══════════════════════════════════════════════════════════════
 
 export default async function handler(req, res) {
-  // ── CORS ──
-  const allowed = [
-    'https://primalgens.com',
-    'https://www.primalgens.com',
-    'http://localhost:3000'
-  ];
-  const origin = req.headers.origin || '';
-  if (allowed.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-  }
+  // ── CORS (open — API key is server-side, no risk) ──
+  const origin = req.headers.origin || '*';
+  res.setHeader('Access-Control-Allow-Origin', origin);
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 

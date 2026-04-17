@@ -1,8 +1,7 @@
 {
   "functions": {
     "api/claude.js": {
-      "maxDuration": 300,
-      "supportsResponseStreaming": true
+      "maxDuration": 300
     }
   }
 }

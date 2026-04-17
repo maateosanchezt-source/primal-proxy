@@ -41,15 +41,15 @@ Header fijo: "PRIMAL® CLUB" dorado + nombre del miembro + fecha.
 Cards: Calorías, Proteína (g), Carbohidratos (g), Grasa (g). Calculados según perfil.
 
 ### Calendario semanal
-7 columnas (Lun-Dom). Cada día tiene N slots (según comidas_dia).
-Cada slot: botón "Elegir" → desplegable con EXACTAMENTE 2 opciones:
-
-OPCIÓN 1 — "💪 Funcional": 15-20 min, práctico, equilibrado. Si hay comidas favoritas, incluir VERSIONES FIT (pizza fit con base integral, burger de pollo con pan integral, etc). Adaptar sabor manteniendo macros.
-
-OPCIÓN 2 — "👨‍🍳 Gourmet": Elaborado, gastronómico. Incluir AL MENOS 1 comida "real" por semana (no fit) con porción ajustada a macros (paella real con cantidad justa, carbonara controlada). Clave para adherencia.
-
-Cada opción muestra: nombre, descripción (1 línea), macros (P/C/G/kcal), precio (€), tiempo (min).
-Al seleccionar: borde dorado, se cierra el desplegable.
+ARQUITECTURA EFICIENTE (CRÍTICO — DEBE caber en el output):
+Toda la data va en arrays JS al inicio del <script>:
+const MEALS=[{id,nombre,desc,cal,p,c,g,precio,tiempo,tipo:'func'|'gourmet',slot:'desayuno'|'comida'|'cena'},...];
+const INGR={meal_id:[{nombre,cantidad,precio,cat}],...};
+Pool: ~6-8 platos por slot (desayuno/comida/cena), mitad funcional mitad gourmet.
+Si hay comidas favoritas: incluir versiones fit. 1 gourmet "real" por semana con porción ajustada.
+El calendario HTML se genera con bucles JS (NO escribir HTML por cada día a mano).
+Cada opción: nombre, desc (1 línea), P/C/G/kcal, precio €, tiempo min, tipo.
+Al elegir: borde dorado, cierra desplegable.
 
 ### CONTADOR DIARIO DE MACROS (debajo de cada columna del día)
 Barra que muestra: Calorías consumidas/objetivo, P consumida/objetivo, C/objetivo, G/objetivo.
@@ -71,41 +71,19 @@ Se recalcula EN TIEMPO REAL al seleccionar platos.
 - Botón "Copiar lista"
 
 ## TAB 2: MI ENTRENAMIENTO
-
-### Resumen semanal con días y tipo de sesión
-
-### Plan por día — ejercicios como cards EXPANDIBLES:
-Al expandir cada ejercicio:
-- Descripción de ejecución (2-3 líneas directas)
-- Series x Reps
-- Descanso
-- Alternativa sin equipo
-- Progresión
-
-### REGISTRO DE PESOS
-Junto a cada ejercicio: input numérico editable [___] kg
-Se guarda en variable JS mientras la página esté abierta.
-
-### PARA AVANZADOS (+4 años):
-Campos adicionales por ejercicio:
-- Tempo mecánico: input texto (ej: "3-1-2-0")
-- Calidad técnica: selector visual 1-10 con barra dorada proporcional
-
-### Adaptar según nivel:
-- PRINCIPIANTE (0-1 año): básicos compuestos, 3 series, 10-15 reps, sin tempo
-- INTERMEDIO (1-4 años): periodización, 4 series, 8-12 reps, progresión peso
-- AVANZADO (+4 años): técnicas intensidad, 4-5 series, rangos variados, tempo + calidad técnica
-
+Data en array JS: const TRAIN=[{dia:'Lunes',tipo:'Pecho y Tríceps',descanso:false,ejercicios:[{nombre,desc,series,reps,descanso,alternativa,progresion}]},...]
+Renderizar con bucles JS. Cards expandibles (click toggle).
+Input peso [___]kg junto a cada ejercicio.
+Si nivel==='avanzado': añadir inputs tempo mecánico + calidad técnica (1-10).
+Niveles: principiante(0-1a)=básicos 3×10-15, intermedio(1-4a)=4×8-12, avanzado(+4a)=4-5×variado+tempo.
 Incluir calentamiento y enfriamiento.
 
 ## TAB 3: MI SUPLEMENTACIÓN
-Cards expandibles por suplemento: qué es, para qué, cuándo, dosis, combinación, advertencias.
-Tabla visual "Mi rutina de suplementos" (mañana/mediodía/noche).
-NMN MACA siempre. Turkesterona, Secret Drops, Shilajit según pack.
+Data en array: const SUPPS=[{nombre,icono,que,para,cuando,dosis,combo,aviso}]
+Cards expandibles generadas por bucle. Tabla rutina (mañana/mediodía/noche).
 
 ## TAB 4: MI PROGRESO
-Check-in mensual (formulario visual).
-Campos: peso, medidas, energía/sueño/libido (1-10), notas.
+HTML mínimo: formulario check-in visual (peso, energía/sueño/libido 1-10, notas).
 Historial: "Mes 1 - Plan generado ✓"
 
 ═══ REGLAS ═══
@@ -118,7 +96,15 @@ Historial: "Mes 1 - Plan generado ✓"
 - Todo funcional: JS que funcione, botones que hagan click, desplegables que abran.
 - SCROLL SUAVE: nada de overflow:hidden en contenedores scrolleables.
 - COMPLETO: todos los platos, ejercicios, ingredientes. Sin "..." ni "etc".
-- EFICIENTE: Usa CSS minificado, nombres cortos de variables, evita comentarios innecesarios. El código debe ser compacto pero legible. Prioriza funcionalidad sobre verbosidad en el código. Usa arrays de datos y bucles JS para generar HTML dinámicamente en vez de escribir cada elemento a mano.`;
+- EFICIENCIA MÁXIMA (LÍMITE DE TOKENS — LEE ESTO):
+  · TODA la data (platos, ejercicios, ingredientes, suplementos) va en arrays/objetos JS al inicio del <script>
+  · Todo el HTML de tabs, calendario, cards se genera con document.createElement o innerHTML desde bucles JS
+  · El HTML estático es SOLO: header, barra acciones, contenedor de tabs, contenedor vacío para cada tab
+  · CERO comentarios en el código
+  · CSS compacto en una sola línea por regla
+  · Variables cortas (d=document, $=querySelector)
+  · NO repetir estilos inline — usar clases CSS
+  · Si el código se corta, NADA funciona. Priorizar que cierre </script></body></html>`;
 
 // ═══════════════════════════════════════════════════════════════
 
@@ -150,7 +136,7 @@ export default async function handler(req, res) {
         },
         body: JSON.stringify({
           model: 'claude-sonnet-4-6',
-          max_tokens: 16000,
+          max_tokens: 24000,
           system: SYSTEM_PROMPT,
           messages: [{ role: 'user', content: userPrompt }]
         })
@@ -163,7 +149,16 @@ export default async function handler(req, res) {
       }
 
       const data = await response.json();
-      const htmlContent = data.content.filter(b => b.type === 'text').map(b => b.text).join('');
+      let htmlContent = data.content.filter(b => b.type === 'text').map(b => b.text).join('');
+      
+      // Strip markdown fencing if Claude wrapped it
+      htmlContent = htmlContent.replace(/^```html?\s*\n?/i, '').replace(/\n?\s*```\s*$/, '').trim();
+      
+      // Check if output was truncated (missing closing tags)
+      if (!htmlContent.includes('</html>')) {
+        // Force-close the HTML to prevent broken page
+        htmlContent += '\n</script></body></html>';
+      }
 
       return res.status(200).json({ success: true, html: htmlContent, usage: data.usage });
     }

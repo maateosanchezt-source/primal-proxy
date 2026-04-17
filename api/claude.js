@@ -1,190 +1,145 @@
 // ═══════════════════════════════════════════════════════════════
-// PRIMAL CLUB V2 — API Proxy for Interactive Protocol Generation
+// PRIMAL CLUB V3 — API Proxy · All feedback incorporated
 // api/claude.js
 // ═══════════════════════════════════════════════════════════════
-
-const SYSTEM_PROMPT = `Eres el motor de PRIMAL CLUB, el sistema de protocolos personalizados de optimización masculina más completo del mercado. Tu trabajo es generar un plan COMPLETO, INTERACTIVO y PERSONALIZADO para cada miembro.
-
+ 
+const SYSTEM_PROMPT = `Eres el motor de PRIMAL CLUB, el sistema de protocolos personalizados de optimización masculina más completo del mercado. Genera un plan COMPLETO, INTERACTIVO y PERSONALIZADO.
+ 
 ═══ OUTPUT ═══
-Genera UNA ÚNICA página HTML autocontenida (HTML + CSS + JS inline). NO markdown. NO explicaciones. SOLO el código HTML completo empezando por <!DOCTYPE html> y terminando en </html>.
-
+Genera UNA ÚNICA página HTML autocontenida (HTML + CSS + JS inline). NO markdown. NO explicaciones. SOLO código HTML desde <!DOCTYPE html> hasta </html>.
+ 
 ═══ DISEÑO ═══
-Paleta PRIMAL:
-- Fondo: #050505 (negro profundo)
-- Dorado: #C8A96E (accent principal)
-- Dorado claro: #d4b87a
-- Texto principal: #f2f0eb (crema)
-- Texto secundario: #a09d96
-- Texto muted: #6b6862
-- Cards: #0c0c0c
-- Bordes: #1a1a1a
-- Verde éxito: #2ecc71
-
-Fuentes: Bebas Neue (títulos), Barlow (cuerpo). Importar desde Google Fonts.
-Mobile-first responsive. Border-radius suave. Transiciones 0.3s.
-
-Header fijo con logo "PRIMAL® CLUB" en dorado + nombre del miembro + fecha de generación.
-
-═══ ESTRUCTURA DE LA PÁGINA ═══
-
-La página tiene 4 secciones con navegación por tabs en la parte superior:
-
+Paleta: fondo #050505, dorado #C8A96E, dorado claro #d4b87a, texto #f2f0eb, secundario #a09d96, muted #6b6862, cards #0c0c0c, bordes #1a1a1a, verde #2ecc71, rojo #e74c3c.
+Fuentes: Bebas Neue (títulos), Barlow (cuerpo) — importar Google Fonts.
+Mobile-first responsive.
+CRÍTICO: html{scroll-behavior:smooth} body{overflow-y:auto} — NO poner overflow:hidden en nada que necesite scroll.
+ 
+Header fijo: "PRIMAL® CLUB" dorado + nombre del miembro + fecha.
+ 
+═══ BARRA DE ACCIONES (sticky debajo del header) ═══
+4 botones en fila horizontal:
+1. "📥 DESCARGAR PDF" → window.print() con @media print landscape, cada tab en página separada
+2. "📧 ENVIAR POR EMAIL" → mailto: con subject "Mi Protocolo PRIMAL CLUB"
+3. "📋 COPIAR RESUMEN" → navigator.clipboard.writeText() con resumen texto plano de macros y plan
+4. "💬 WHATSAPP" → window.open wa.me con texto descriptivo
+ 
+@media print {
+  * { print-color-adjust:exact!important; -webkit-print-color-adjust:exact!important }
+  @page { size:landscape; margin:12mm }
+  .action-bar,.tabs-nav { display:none!important }
+  .tab-content { display:block!important; page-break-before:always }
+  .tab-content:first-child { page-break-before:auto }
+  body { background:#050505!important }
+}
+ 
+═══ TABS DE NAVEGACIÓN (sticky) ═══
+4 tabs horizontales, sticky debajo de la barra de acciones.
+ 
 ## TAB 1: MI PLAN DE COMIDAS (activo por defecto)
-
-### Resumen de macros diarios
-Mostrar en cards horizontales: Calorías objetivo, Proteína (g), Carbohidratos (g), Grasa (g).
-Calcularlos según el perfil del usuario (peso, altura, edad, objetivo, actividad).
-
-### Calendario semanal interactivo
-- 7 columnas (Lun-Dom), cada una con N slots de comida (según comidas_dia del usuario)
-- Cada slot de comida (ej: "Comida 1", "Comida 2", "Cena") tiene un botón "Elegir"
-- Al hacer click en "Elegir" se abre un modal/desplegable con 4 OPCIONES de plato
-- Cada opción muestra:
-  · Nombre del plato (ej: "Pollo a la plancha con arroz integral")
-  · Descripción corta (1 línea: ingredientes principales)
-  · Macros: Proteína | Carbos | Grasa | Calorías
-  · Precio estimado: €X.XX (basado en el supermercado del usuario)
-  · Tiempo de preparación: X min
-  · Icono de dificultad (fácil/media)
-- Al seleccionar una opción, se marca con borde dorado y se cierra el desplegable
-- El nombre del plato seleccionado aparece en el slot del calendario
-
-IMPORTANTE sobre las opciones de platos:
-- Deben ser REALES, con ingredientes que se compran en el supermercado indicado por el usuario
-- Los precios deben ser REALISTAS para España (Mercadona, Lidl, Carrefour, etc.)
-- Las opciones deben variar: no repetir el mismo plato en distintos slots
-- Cada opción debe cumplir aproximadamente los macros del slot (distribuir las calorías diarias entre las comidas)
-- Incluir opciones rápidas (<15 min) y opciones más elaboradas
-- Generar AL MENOS 4 opciones distintas por slot, pero pueden compartirse opciones entre días
-
-### Lista de la compra automática
-- Sección que se actualiza EN TIEMPO REAL según los platos seleccionados en el calendario
-- Organizada por categorías: Proteínas, Verduras y Hortalizas, Frutas, Lácteos, Cereales y Legumbres, Otros
-- Cada item muestra: nombre, cantidad necesaria para la semana, precio estimado
-- Total estimado de la compra semanal al final
-- Botón "Copiar lista" que copia al portapapeles en formato texto limpio
-- Si no se ha seleccionado ningún plato, mostrar mensaje: "Elige tus comidas en el calendario para generar tu lista"
-
+ 
+### Macros diarios objetivo
+Cards: Calorías, Proteína (g), Carbohidratos (g), Grasa (g). Calculados según perfil.
+ 
+### Calendario semanal
+7 columnas (Lun-Dom). Cada día tiene N slots (según comidas_dia).
+Cada slot: botón "Elegir" → desplegable con EXACTAMENTE 2 opciones:
+ 
+OPCIÓN 1 — "💪 Funcional": 15-20 min, práctico, equilibrado. Si hay comidas favoritas, incluir VERSIONES FIT (pizza fit con base integral, burger de pollo con pan integral, etc). Adaptar sabor manteniendo macros.
+ 
+OPCIÓN 2 — "👨‍🍳 Gourmet": Elaborado, gastronómico. Incluir AL MENOS 1 comida "real" por semana (no fit) con porción ajustada a macros (paella real con cantidad justa, carbonara controlada). Clave para adherencia.
+ 
+Cada opción muestra: nombre, descripción (1 línea), macros (P/C/G/kcal), precio (€), tiempo (min).
+Al seleccionar: borde dorado, se cierra el desplegable.
+ 
+### CONTADOR DIARIO DE MACROS (debajo de cada columna del día)
+Barra que muestra: Calorías consumidas/objetivo, P consumida/objetivo, C/objetivo, G/objetivo.
+- VERDE (#2ecc71) si está dentro del ±10% del objetivo
+- ROJO (#e74c3c) si supera +10%
+- GRIS si faltan comidas por elegir
+Se recalcula EN TIEMPO REAL al seleccionar platos.
+ 
+### TOTAL SEMANAL (al final del calendario)
+- Total kcal semana (suma 7 días)
+- Media diaria vs objetivo
+- Estado: "✓ En objetivo" verde / "⚠ Por encima" rojo / "Elige tus comidas" gris
+ 
+### Lista de la compra
+- Se actualiza según platos seleccionados
+- Categorías: Proteínas, Verduras, Frutas, Lácteos, Cereales, Otros
+- Nombre + cantidad + precio
+- Total al final
+- Botón "Copiar lista"
+ 
 ## TAB 2: MI ENTRENAMIENTO
-
-### Resumen semanal
-Cards con los días de entreno marcados y tipo de sesión (ej: "Lunes - Pecho y Tríceps").
-
-### Plan de entrenamiento detallado
-Para cada día de entrenamiento:
-- Título del día y grupo muscular
-- Lista de ejercicios, cada uno como card EXPANDIBLE (click para abrir/cerrar):
-  · Nombre del ejercicio
-  · Al expandir muestra:
-    - Descripción de cómo ejecutarlo (2-3 líneas claras)
-    - Series x Repeticiones (ej: "4 x 10-12")
-    - Descanso entre series (ej: "90 seg")
-    - Alternativa si no tiene el equipo (ej: "Sin barra: usar mancuernas")
-    - Nota de progresión (ej: "Sube 2.5kg cuando completes 4x12 con buena forma")
-
-El plan debe ser apropiado para el nivel del usuario (principiante/intermedio/avanzado).
+ 
+### Resumen semanal con días y tipo de sesión
+ 
+### Plan por día — ejercicios como cards EXPANDIBLES:
+Al expandir cada ejercicio:
+- Descripción de ejecución (2-3 líneas directas)
+- Series x Reps
+- Descanso
+- Alternativa sin equipo
+- Progresión
+ 
+### REGISTRO DE PESOS
+Junto a cada ejercicio: input numérico editable [___] kg
+Se guarda en variable JS mientras la página esté abierta.
+ 
+### PARA AVANZADOS (+4 años):
+Campos adicionales por ejercicio:
+- Tempo mecánico: input texto (ej: "3-1-2-0")
+- Calidad técnica: selector visual 1-10 con barra dorada proporcional
+ 
+### Adaptar según nivel:
+- PRINCIPIANTE (0-1 año): básicos compuestos, 3 series, 10-15 reps, sin tempo
+- INTERMEDIO (1-4 años): periodización, 4 series, 8-12 reps, progresión peso
+- AVANZADO (+4 años): técnicas intensidad, 4-5 series, rangos variados, tempo + calidad técnica
+ 
 Incluir calentamiento y enfriamiento.
-Si el usuario tiene limitaciones de equipo, adaptar TODO el plan.
-
+ 
 ## TAB 3: MI SUPLEMENTACIÓN
-
-Lista de los suplementos que tiene el usuario. Cada suplemento es una card EXPANDIBLE:
-- Nombre del suplemento + icono
-- Al expandir:
-  · Qué es (1-2 líneas, sin jerga)
-  · Para qué sirve (beneficios concretos)
-  · Cuándo tomarlo (momento del día, con/sin comida)
-  · Dosis recomendada (cantidad exacta)
-  · Con qué combinarlo para mejor efecto
-  · Advertencias (si aplica)
-
-Incluir SIEMPRE estos suplementos base que vienen en el protocolo PRIMAL:
-- NMN MACA (testosterona, energía, antienvejecimiento)
-- Turkesterona & Tongkat Ali (fuerza, masa muscular) — si está en su pack
-- Secret Drops (rendimiento sexual) — si está en su pack
-
-Añadir recomendaciones generales:
-- Timing óptimo de cada suplemento
-- Tabla visual de "Mi rutina de suplementos" (mañana/mediodía/noche)
-
+Cards expandibles por suplemento: qué es, para qué, cuándo, dosis, combinación, advertencias.
+Tabla visual "Mi rutina de suplementos" (mañana/mediodía/noche).
+NMN MACA siempre. Turkesterona, Secret Drops, Shilajit según pack.
+ 
 ## TAB 4: MI PROGRESO
-
-- Sección de check-in mensual (formulario visual, no funcional por ahora, solo diseño)
-- Campos: peso actual, medidas, energía (1-10), sueño (1-10), libido (1-10), notas
-- Texto: "Tu próximo check-in: [fecha +30 días]. Actualizaremos tu plan según tu progreso."
-- Historial placeholder: "Mes 1 - Plan inicial generado ✓"
-
-═══ INTERACTIVIDAD (JavaScript) ═══
-
-1. TABS: Click en tab cambia la vista. Tab activo con borde dorado inferior.
-
-2. CALENDARIO DE COMIDAS:
-   - Cada slot tiene botón "Elegir" → abre panel desplegable con 4 opciones
-   - Click en opción → se selecciona (borde dorado, checkmark), las demás se desmerman
-   - El slot muestra el nombre del plato elegido
-   - La lista de la compra se recalcula automáticamente
-
-3. LISTA DE LA COMPRA:
-   - Objeto JavaScript global que mapea cada plato a sus ingredientes con cantidades
-   - Función que recorre todos los slots seleccionados, agrupa ingredientes, suma cantidades
-   - Renderiza la lista organizada por categorías
-   - Botón copiar: navigator.clipboard.writeText()
-
-4. EJERCICIOS EXPANDIBLES:
-   - Click en card de ejercicio → toggle clase .expanded
-   - Animación suave de max-height
-
-5. SUPLEMENTOS EXPANDIBLES:
-   - Mismo patrón que ejercicios
-
-6. RESPONSIVE:
-   - Mobile: calendario en scroll horizontal o stack vertical
-   - Tabs en scroll horizontal en mobile
-
-═══ REGLAS DE PERSONALIZACIÓN ═══
-
-- NUNCA generes planes genéricos. Usa TODOS los datos del perfil del usuario.
-- Los platos deben ser de la GASTRONOMÍA ESPAÑOLA y adaptados al supermercado indicado.
-- Los precios deben ser REALISTAS para España 2025.
-- Si el usuario tiene restricciones alimentarias, TODAS las opciones deben respetarlas.
-- El plan de entrenamiento debe coincidir EXACTAMENTE con los días indicados.
-- El tono es directo, masculino, sin rodeos. Tutea al usuario. Nada de "querido usuario".
-- Usa el nombre del usuario en el header.
-
-═══ CALIDAD DEL OUTPUT ═══
-
-El HTML generado debe ser:
-- COMPLETO: No dejes secciones a medias ni uses "..." o "etc"
-- FUNCIONAL: Todo el JavaScript debe funcionar correctamente
-- BONITO: Diseño premium que el usuario sienta que vale €49/mes
-- PESADO EN DATOS: Genera TODOS los platos, TODOS los ejercicios, TODOS los ingredientes. No escatimes.
-
-RECUERDA: Este plan es lo que diferencia a PRIMAL de cualquier marca de suplementos. Tiene que ser TAN bueno que el cliente no quiera cancelar su suscripción NUNCA. Cada detalle importa.`;
-
+Check-in mensual (formulario visual).
+Campos: peso, medidas, energía/sueño/libido (1-10), notas.
+Historial: "Mes 1 - Plan generado ✓"
+ 
+═══ REGLAS ═══
+- Usa TODOS los datos del perfil. Nada genérico.
+- Comidas favoritas → versiones fit adaptadas. Mantener sabor, ajustar macros.
+- 1 comida real/semana en gourmet. Adherencia > perfección.
+- Platos de gastronomía española, precios reales del supermercado indicado.
+- Restricciones: respetarlas en TODAS las opciones.
+- Tono directo, masculino, sin rodeos. Tutear.
+- Todo funcional: JS que funcione, botones que hagan click, desplegables que abran.
+- SCROLL SUAVE: nada de overflow:hidden en contenedores scrolleables.
+- COMPLETO: todos los platos, ejercicios, ingredientes. Sin "..." ni "etc".`;
+ 
 // ═══════════════════════════════════════════════════════════════
-
+ 
 export default async function handler(req, res) {
-  // ── CORS (open — API key is server-side, no risk) ──
   const origin = req.headers.origin || '*';
   res.setHeader('Access-Control-Allow-Origin', origin);
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
+ 
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-
+ 
   try {
     const { mode, profile, prompt, max_tokens } = req.body;
-
-    // ── MODE 1: GENERATE PROTOCOL (structured questionnaire) ──
+ 
     if (mode === 'protocol') {
       if (!profile || typeof profile !== 'object') {
         return res.status(400).json({ error: 'Missing profile object' });
       }
-
-      // Build user prompt from questionnaire data
+ 
       const userPrompt = buildUserPrompt(profile);
-
+ 
       const response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {
@@ -199,32 +154,23 @@ export default async function handler(req, res) {
           messages: [{ role: 'user', content: userPrompt }]
         })
       });
-
+ 
       if (!response.ok) {
         const err = await response.text();
         console.error('Anthropic error:', err);
         return res.status(502).json({ error: 'API error', detail: err.substring(0, 200) });
       }
-
+ 
       const data = await response.json();
-
-      // Extract HTML from response
-      const htmlContent = data.content
-        .filter(b => b.type === 'text')
-        .map(b => b.text)
-        .join('');
-
-      return res.status(200).json({
-        success: true,
-        html: htmlContent,
-        usage: data.usage
-      });
+      const htmlContent = data.content.filter(b => b.type === 'text').map(b => b.text).join('');
+ 
+      return res.status(200).json({ success: true, html: htmlContent, usage: data.usage });
     }
-
-    // ── MODE 2: LEGACY (raw prompt, backwards compatible) ──
+ 
+    // Legacy mode
     if (!prompt) return res.status(400).json({ error: 'Missing prompt or mode' });
     if (prompt.length > 50000) return res.status(400).json({ error: 'Prompt too long' });
-
+ 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -238,62 +184,44 @@ export default async function handler(req, res) {
         messages: [{ role: 'user', content: prompt }]
       })
     });
-
+ 
     if (!response.ok) {
       const err = await response.text();
       console.error('Anthropic error:', err);
       return res.status(502).json({ error: 'API error' });
     }
-
+ 
     const data = await response.json();
     return res.status(200).json(data);
-
+ 
   } catch (e) {
     console.error('Proxy error:', e);
     return res.status(500).json({ error: 'Internal error' });
   }
 }
-
-// ═══════════════════════════════════════════════════════════════
-// Build structured user prompt from questionnaire profile
-// ═══════════════════════════════════════════════════════════════
-
+ 
 function buildUserPrompt(p) {
-  return `Genera mi protocolo PRIMAL CLUB personalizado. Aquí está mi perfil:
-
-DATOS PERSONALES:
-- Nombre: ${p.nombre || 'Miembro PRIMAL'}
-- Edad: ${p.edad || 30} años
-- Peso: ${p.peso || 80} kg
-- Altura: ${p.altura || 175} cm
-- Nivel de actividad actual: ${p.nivel_actividad || 'moderado'}
-
-OBJETIVOS:
-- Objetivo principal: ${p.objetivo || 'mejorar composición corporal'}
-- Objetivo específico: ${p.objetivo_especifico || 'perder grasa y ganar fuerza'}
-
-ENTRENAMIENTO:
-- Experiencia en gimnasio: ${p.experiencia_gym || 'intermedio'}
-- Días disponibles para entrenar: ${p.dias_entreno || 4}
-- Equipo disponible: ${p.equipo_disponible || 'gimnasio completo'}
-- Horario preferido: ${p.horario || 'flexible'}
-
-NUTRICIÓN:
-- Comidas al día: ${p.comidas_dia || 3}
-- Supermercado habitual: ${p.supermercado || 'Mercadona'}
-- Presupuesto semanal en alimentación: ${p.presupuesto_semanal || 60}€
-- Restricciones alimentarias: ${p.restricciones || 'ninguna'}
-- Alergias: ${p.alergias || 'ninguna'}
-
-SUPLEMENTOS EN SU PROTOCOLO:
-${(p.suplementos || ['NMN MACA']).map(s => `- ${s}`).join('\n')}
-
-SALUD:
-- Problemas de salud o lesiones: ${p.problemas_salud || 'ninguno'}
-- Medicación actual: ${p.medicacion || 'ninguna'}
-
-NOTAS ADICIONALES:
-${p.notas || 'Ninguna'}
-
-Genera la página HTML interactiva completa con mi plan personalizado.`;
+  const nivelDesc = p.experiencia_gym === 'principiante'
+    ? 'PRINCIPIANTE (0-1 año) — ejercicios básicos, sin tempo'
+    : p.experiencia_gym === 'avanzado'
+    ? 'AVANZADO (+4 años) — incluir TEMPO MECÁNICO y CALIDAD TÉCNICA (1-10) por ejercicio'
+    : 'INTERMEDIO (1-4 años) — periodización básica, progresión de peso';
+ 
+  return `Genera mi protocolo PRIMAL CLUB personalizado:
+ 
+DATOS: ${p.nombre || 'Miembro PRIMAL'}, ${p.edad || 30} años, ${p.peso || 80}kg, ${p.altura || 175}cm, actividad ${p.nivel_actividad || 'moderado'}
+ 
+OBJETIVOS: ${p.objetivo || 'recomposición'} — ${p.objetivo_especifico || ''}
+ 
+ENTRENAMIENTO: ${nivelDesc}. ${p.dias_entreno || 4} días/sem, equipo ${p.equipo_disponible || 'gimnasio completo'}, horario ${p.horario || 'flexible'}, lesiones: ${p.problemas_salud || 'ninguna'}
+ 
+NUTRICIÓN: ${p.comidas_dia || 3} comidas/día, supermercado ${p.supermercado || 'Mercadona'}, presupuesto ${p.presupuesto_semanal || 60}€/sem, restricciones: ${p.restricciones || 'ninguna'}
+COMIDAS FAVORITAS: ${p.comidas_favoritas || 'variado'} → incluir VERSIONES FIT de estas + 1 comida real/semana con porción ajustada
+ 
+SUPLEMENTOS: ${(p.suplementos || ['NMN MACA']).join(', ')}
+MEDICACIÓN: ${p.medicacion || 'ninguna'}
+NOTAS: ${p.notas || 'Ninguna'}
+ 
+Genera la página HTML interactiva completa.`;
 }
+ 

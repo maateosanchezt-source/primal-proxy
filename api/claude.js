@@ -35,101 +35,191 @@ tb.forEach(b=>b.addEventListener('click',()=>{tb.forEach(x=>x.classList.remove('
 ═══ TAB 1: MI PLAN DE COMIDAS (sección más crítica) ═══
 
 ### RIGOR CALÓRICO ABSOLUTO
-Cada plato DEBE incluir ingredientes con cantidades EXACTAS en gramos y macros REALES calculados matemáticamente. Usa tablas nutricionales precisas. NO inventes macros.
-Valores base por 100g (úsalos proporcionalmente):
+Cada plato DEBE incluir ingredientes con cantidades EXACTAS en gramos y macros REALES calculados matemáticamente. TODAS las cantidades en PESO EN SECO (salvo verduras frescas). Usa tablas nutricionales precisas. NO inventes macros.
+
+Valores base por 100g EN SECO/CRUDO (úsalos proporcionalmente):
 - Pechuga pollo cruda: 110k 23P 0C 1.5G
 - Salmón crudo: 208k 20P 0C 13G
 - Atún al natural: 116k 26P 0C 1G
 - Ternera magra cruda: 158k 22P 0C 7G
+- Gambas crudas: 99k 24P 0C 1G
 - Huevo entero: 143k 13P 1C 10G
 - Clara de huevo: 52k 11P 0.7C 0.2G
-- Arroz blanco cocido: 130k 2.7P 28C 0.3G
-- Pasta cocida: 158k 6P 31C 1G
-- Patata cocida: 86k 1.7P 20C 0.1G
-- Boniato cocido: 86k 1.6P 20C 0.1G
-- Avena: 389k 17P 66C 7G
-- Lentejas cocidas: 116k 9P 20C 0.4G
-- Garbanzos cocidos: 164k 8.9P 27C 2.6G
+- Arroz blanco seco: 357k 7P 78C 0.6G (cocido: 130k 2.7P 28C 0.3G)
+- Pasta seca: 371k 13P 75C 1.5G (cocida: 158k 6P 31C 1G)
+- Patata cruda: 77k 2P 17C 0.1G
+- Boniato crudo: 86k 1.6P 20C 0.1G
+- Avena seca: 389k 17P 66C 7G
+- Lentejas secas: 353k 26P 60C 1G (cocidas: 116k 9P 20C 0.4G)
+- Garbanzos secos: 364k 19P 61C 6G
 - Aguacate: 160k 2P 9C 15G
 - Aceite oliva (AOVE): 884k 0P 0C 100G
-- Frutos secos (almendra): 579k 21P 22C 50G
+- Almendra cruda: 579k 21P 22C 50G
 - Queso fresco batido 0%: 38k 8P 2C 0.3G
 - Yogur griego natural: 97k 9P 4C 5G
 - Leche entera: 61k 3.2P 4.8C 3.3G
 - Pan integral: 247k 13P 41C 3.4G
 - Plátano: 89k 1.1P 23C 0.3G
 - Manzana: 52k 0.3P 14C 0.2G
-- Verduras hoja verde: ~25k 2P 4C 0.3G
-- Brócoli: 34k 2.8P 7C 0.4G
-Calcula por regla de 3. Ej: 200g pollo = 220k 46P 0C 3G.
+- Brócoli crudo: 34k 2.8P 7C 0.4G
+Calcula por regla de 3. Ej: 150g pollo seco = 165k 34.5P 0C 2.3G.
 
-### DISTRIBUCIÓN CALÓRICA POR COMIDA
-media = total_kcal_objetivo ÷ nº_comidas_dia
-Opciones: genera entre media-200 y media+200 kcal. SIEMPRE incluir variación: algunas ligeras, algunas densas. Ej: 2400k/4=600 → opciones 400-800k.
+### PRESUPUESTO POR COMIDA (CRÍTICO)
+Calcula: presu_semana ÷ 7 = €/día. €/día ÷ comidas_dia = €/comida media.
+Ej: 60€/sem · 4 comidas/día → 8.57€/día → 2.14€/comida media.
+GENERA opciones con precios ENTRE (media - 30%) y (media + 50%):
+- Ej para media 2.14€: opciones de 1.40€ a 3.20€.
+- SIEMPRE incluir al menos 2 opciones cheap (<media) para usuarios con poco margen
+- SIEMPRE incluir alguna opción premium (>media) para días especiales
+- Precios REALISTAS del supermercado indicado, calculados por escandallo.
 
-### ESTRUCTURA DE DATOS JS
-const P={kcal:<obj>,p:<obj>,c:<obj>,g:<obj>}; // macros diarios objetivo
-const SLOTS=['desayuno','comida','cena']; // o añade 'snack'/'merienda' si nº_comidas>3
+Precios/kg referencia (Mercadona, ajusta por supermercado):
+- Pollo pechuga: 6€/kg | Salmón: 16€/kg | Atún lata: 8€/lata 100g
+- Ternera picada: 9€/kg | Huevos: 2€/docena (0.17€/ud)
+- Arroz: 1.30€/kg | Pasta: 1.20€/kg | Avena: 2€/kg | Lentejas: 1.80€/kg
+- Patata: 1.20€/kg | Boniato: 2€/kg | Pan integral: 2€/unidad 500g
+- AOVE: 7€/litro | Leche: 0.90€/litro | Yogur griego: 2€/kg
+- Aguacate: 6€/kg | Plátano: 1.80€/kg | Manzana: 2€/kg
+- Brócoli: 2.50€/kg | Queso batido 0%: 3€/kg | Almendras: 15€/kg
+Consum/Ahorramás/Hipercor: precios 10-15% más altos que Mercadona.
+Lidl/Dia/Aldi: precios 5-10% más bajos que Mercadona.
+Eroski/Alcampo/Carrefour: precios similares a Mercadona.
+
+### 8 OPCIONES POR SLOT
+const P={kcal:N,p:N,c:N,g:N}; // macros diarios objetivo
+const SLOTS=['desayuno','comida','cena']; // añade 'snack'/'merienda' si nº_comidas>3
 const MEALS={
- desayuno:[{id:'d1',n:'Avena proteica',ing:'80g avena, 250ml leche, 30g whey, 1 plátano (120g)',k:560,p:40,c:75,g:10,pr:1.8,m:8,t:'fit'}, ...8 items],
+ desayuno:[{id:'d1',n:'Avena proteica',ing:'80g avena seca, 250ml leche, 30g whey, 1 plátano (120g)',k:560,p:40,c:75,g:10,pr:1.80,m:8,t:'fit'}, ...8 items],
  comida:[ ...8 items],
  cena:[ ...8 items]
 };
-8 OPCIONES POR SLOT:
 - 4 versiones FIT adaptadas a COMIDAS FAVORITAS del usuario
 - 4 genéricas saludables variadas (pescado/carne/legumbres/vegetariano)
-- 1 de las 8 puede ser gourmet/comida real (uso semanal)
+- 1 de las 8 puede ser gourmet/comida real
+- Precios distribuidos entre media-30% y media+50%
+- Macros distribuidos entre media-200k y media+200k (kcal)
 
 const SEL={}; // selecciones dia-slot → meal_id
 const DIAS=['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
 
 ### CALENDARIO: 7 DÍAS APILADOS VERTICALMENTE (TODA LA SEMANA)
 NUNCA fragmentes (3+3+1). SIEMPRE los 7 días stack vertical en todas resoluciones.
-Cada día = card full-width con header (día + nombre) + 3 slots (desayuno/comida/cena) + contador diario.
-Dentro de cada día: los 3 slots pueden ir en grid 3 cols desktop / 1 col móvil.
-Cada slot: botón "Elegir" que abre modal.
+Cada día = card full-width con header (día + nombre) + 3 slots + contador diario.
+Dentro de cada día: 3 slots en grid 3 cols desktop / 1 col móvil.
+Cada slot: botón "Elegir" que abre modal + MUESTRA PRECIO ESTIMADO del plato seleccionado (o placeholder si no seleccionado).
 Genera TODO con bucles JS desde DIAS y SLOTS.
 
-### MODAL DE SELECCIÓN (CRÍTICO — PROHIBIDO SCROLL AUTOMÁTICO)
+### MODAL DE SELECCIÓN (CRÍTICO — CENTRADO EN VIEWPORT VISIBLE)
+
+El plan se renderiza DENTRO de un iframe srcdoc en la página padre. Como el iframe tiene altura enorme (todo el contenido sin scroll interno), position:fixed dentro del iframe se fija al viewport INTERNO del iframe (miles de px), NO al viewport visible del usuario. Por eso hay que posicionar el modal manualmente en la zona visible del usuario usando window.parent.
+
 HTML:
-<div id="modal" class="modal" style="display:none"><div class="modal-inner"><div class="modal-hdr"><h3 id="modal-t"></h3><button id="modal-x">✕</button></div><div class="modal-body" id="modal-body"></div></div></div>
+<div id="modal" class="modal" style="display:none"><div class="modal-bg"></div><div class="modal-panel"><div class="modal-hdr"><h3 id="modal-t"></h3><button id="modal-x">✕</button></div><div class="modal-body" id="modal-body"></div></div></div>
 
 CSS:
-.modal{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px}
-.modal-inner{background:var(--card);border:1px solid var(--bd2);border-radius:12px;max-width:760px;width:100%;max-height:85vh;overflow-y:auto}
+.modal{position:absolute;left:0;right:0;z-index:9999;pointer-events:none}
+.modal.on{pointer-events:auto}
+.modal-bg{position:absolute;left:0;right:0;top:0;background:rgba(0,0,0,.88);pointer-events:auto}
+.modal-panel{position:relative;background:var(--card);border:1px solid var(--bd2);border-radius:12px;max-width:760px;width:calc(100% - 32px);max-height:85vh;overflow-y:auto;margin:0 auto;pointer-events:auto;box-shadow:0 20px 60px rgba(0,0,0,.6)}
 .modal-hdr{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--bd);position:sticky;top:0;background:var(--card);z-index:2}
 .modal-body{padding:20px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
 @media(max-width:600px){.modal-body{grid-template-columns:1fr}}
 .modal-opt{background:var(--card2);border:1px solid var(--bd);border-radius:8px;padding:14px;cursor:pointer;transition:border-color .2s}
 .modal-opt:hover{border-color:var(--g)}
 
-JS (CRÍTICO — PROHIBIDO MOVER SCROLL DEL BODY):
+JS — APERTURA CON POSICIÓN CALCULADA EN VIEWPORT VISIBLE:
 function openModal(dia,slot){
   const m=document.getElementById('modal');
-  const t=document.getElementById('modal-t');
+  const bg=m.querySelector('.modal-bg');
+  const panel=m.querySelector('.modal-panel');
+  document.getElementById('modal-t').textContent=slot.toUpperCase()+' · '+dia;
   const b=document.getElementById('modal-body');
-  t.textContent=slot.toUpperCase()+' · '+dia;
-  b.innerHTML=MEALS[slot].map(x=>'<div class="modal-opt" data-id="'+x.id+'"><div style="font-family:Bebas Neue;font-size:18px;color:var(--g);letter-spacing:1px">'+x.n+'</div><div style="color:var(--cd);font-size:12px;margin:6px 0">'+x.ing+'</div><div style="color:var(--cr);font-size:13px"><b>'+x.k+'</b>kcal · '+x.p+'P · '+x.c+'C · '+x.g+'G</div><div style="color:var(--cm);font-size:11px;margin-top:4px">'+x.pr.toFixed(2)+'€ · '+x.m+'min · '+x.t+'</div></div>').join('');
-  m.style.display='flex';
-  b.querySelectorAll('.modal-opt').forEach(el=>el.addEventListener('click',()=>{SEL[dia+'-'+slot]=el.dataset.id;m.style.display='none';refresh()}));
+  b.innerHTML=MEALS[slot].map(function(x){
+    return '<div class="modal-opt" data-id="'+x.id+'">' +
+      '<div style="display:flex;justify-content:space-between;align-items:start;gap:8px">' +
+        '<div style="font-family:Bebas Neue;font-size:18px;color:var(--g);letter-spacing:1px">'+x.n+'</div>' +
+        '<div style="font-family:Bebas Neue;font-size:18px;color:var(--gl);white-space:nowrap">'+x.pr.toFixed(2)+'€</div>' +
+      '</div>' +
+      '<div style="color:var(--cd);font-size:12px;margin:6px 0">'+x.ing+'</div>' +
+      '<div style="color:var(--cr);font-size:13px"><b>'+x.k+'</b>kcal · '+x.p+'P · '+x.c+'C · '+x.g+'G</div>' +
+      '<div style="color:var(--cm);font-size:11px;margin-top:4px">'+x.m+'min · '+x.t+'</div>' +
+    '</div>';
+  }).join('');
+  // Calcular posición en viewport visible del padre
+  let viewTop=0, viewH=window.innerHeight||800;
+  try {
+    const parentScrollY = window.parent.scrollY || window.parent.pageYOffset || 0;
+    const parentH = window.parent.innerHeight || viewH;
+    const fe = window.frameElement;
+    if (fe) {
+      const rect = fe.getBoundingClientRect();
+      // Posición del iframe relative al viewport del padre
+      viewTop = Math.max(0, -rect.top);
+      viewH = parentH;
+    } else {
+      viewTop = parentScrollY;
+    }
+  } catch(e){
+    viewTop = window.scrollY || 0;
+  }
+  // Overlay ocupa toda la página para bloquear clicks
+  bg.style.top = '0';
+  bg.style.height = document.documentElement.scrollHeight + 'px';
+  // Panel centrado en viewport visible
+  m.style.top = viewTop + 'px';
+  m.style.height = viewH + 'px';
+  m.style.display = 'flex';
+  m.style.alignItems = 'center';
+  m.style.justifyContent = 'center';
+  m.classList.add('on');
+  b.querySelectorAll('.modal-opt').forEach(function(el){
+    el.addEventListener('click',function(){
+      SEL[dia+'-'+slot]=el.dataset.id;
+      closeModal();
+      refresh();
+    });
+  });
 }
-document.getElementById('modal-x').addEventListener('click',()=>{document.getElementById('modal').style.display='none'});
-document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='modal')e.target.style.display='none'});
-PROHIBIDO: document.body.style.overflow, window.scrollTo, element.scrollIntoView, preventDefault sobre eventos de scroll. El modal se superpone en position:fixed sin tocar el scroll del body.
+function closeModal(){
+  const m=document.getElementById('modal');
+  m.style.display='none';
+  m.classList.remove('on');
+}
+document.getElementById('modal-x').addEventListener('click',closeModal);
+document.getElementById('modal').addEventListener('click',function(e){
+  if(e.target===document.getElementById('modal')||e.target.classList.contains('modal-bg'))closeModal();
+});
+
+CRÍTICO: PROHIBIDO document.body.style.overflow, window.scrollTo, scrollIntoView, preventDefault sobre scroll. El modal se posiciona sin mover el body.
 
 ### CONTADOR DIARIO (debajo de cada día)
 kcal consumidas / objetivo + P/C/G.
 Verde si ±10% kcal, rojo si >+15%, gris si sin selección.
-function refresh(){ recalcular todos los contadores + total semanal + lista compra }
 Actualiza en tiempo real tras cada selección.
 
 ### TOTAL SEMANAL (al final del Tab 1)
 Suma 7 días, divide entre 7 = media diaria. Mismo sistema de color.
 
-### LISTA DE LA COMPRA
-Acumula ingredientes de todas las selecciones. Suma gramos por ingrediente. Agrupa por categorías (Proteínas, Carbohidratos, Verduras, Grasas, Lácteos, Otros). Muestra cantidad total + precio estimado. Total €.
+### LISTA DE LA COMPRA — SUMATORIO REAL CON ESCANDALLO
+Acumula ingredientes de TODAS las selecciones. Suma GRAMOS REALES (no "x2, x3"):
+Ej: si pollo aparece en 5 platos con 150g cada uno → "750g pechuga pollo · 4.50€"
+Ej: si aceite aparece en 8 platos con 10ml cada uno → "80ml AOVE · 0.56€"
+
+Agrupa por categorías: Proteínas, Carbohidratos, Verduras/Fruta, Grasas, Lácteos, Otros.
+Precio escandallado = (gramos_totales ÷ 1000) × precio_€_por_kg del supermercado.
+Muestra total € de la semana al final.
 Botón "📋 COPIAR LISTA" con navigator.clipboard.
-Usa precios realistas del supermercado indicado (Mercadona/Carrefour/Dia/Lidl).
+Estructura data para ingredientes:
+const INGR = {
+  meal_id: [{n:'pechuga pollo', g:150, cat:'prot', pk:6.00}, ...]
+};
+Al cambiar SEL, recalcular: acumular por nombre, sumar g, calcular precio (g/1000 × pk).
+
+### NOTA DE MEDIDAS (debajo de las 8 opciones de cada slot)
+<div style="color:var(--cm);font-size:11px;margin-top:8px;font-style:italic">
+* Todas las cantidades están expresadas en peso seco/crudo. Pesa los alimentos ANTES de cocinarlos.
+</div>
+
 
 ═══ TAB 2: MI ENTRENAMIENTO ═══
 
@@ -377,6 +467,14 @@ function buildUserPrompt(p) {
 
   const supls = (p.suplementos && p.suplementos.length) ? p.suplementos.join(', ') : 'NMN MACA';
 
+  // Cálculos auxiliares
+  const comidasDia = parseInt(p.comidas_dia) || 3;
+  const presuSem = parseInt(p.presupuesto_semanal) || 60;
+  const euroDia = (presuSem / 7).toFixed(2);
+  const euroComida = (presuSem / 7 / comidasDia).toFixed(2);
+  const rangoMin = (euroComida * 0.70).toFixed(2);
+  const rangoMax = (euroComida * 1.50).toFixed(2);
+
   return `Genera mi protocolo PRIMAL CLUB personalizado y completo:
 
 DATOS PERSONALES
@@ -398,13 +496,22 @@ Horario: ${p.horario || 'flexible'}
 Lesiones/limitaciones: ${p.problemas_salud || 'ninguna'}
 
 NUTRICIÓN
-Comidas/día: ${p.comidas_dia || 3}
+Comidas/día: ${comidasDia}
 Supermercado de referencia: ${p.supermercado || 'Mercadona'}
-Presupuesto semanal: ${p.presupuesto_semanal || 60}€
+Presupuesto semanal: ${presuSem}€
+→ ${euroDia}€/día, ${euroComida}€/comida media
+→ Las 8 opciones de cada slot deben tener precios entre ${rangoMin}€ y ${rangoMax}€
+→ Incluir al menos 2 opciones económicas (<${euroComida}€) para margen presupuestario
 Restricciones alimentarias: ${p.restricciones || 'ninguna'}
 Comidas favoritas del usuario (genera versiones FIT + 1 gourmet real/semana): ${p.comidas_favoritas || 'variado'}
 
-IMPORTANTE: 8 opciones por slot (4 adaptadas a sus gustos + 4 genéricas saludables). Cada plato con ingredientes en gramos y macros REALES calculados.
+IMPORTANTE:
+- 8 opciones por slot (4 adaptadas a gustos + 4 genéricas saludables)
+- Cada plato con ingredientes en gramos/ml EN SECO y macros REALES calculados
+- Precios escandallados usando precio/kg del supermercado indicado
+- Lista de la compra suma TOTALES en gramos (no "x2, x3")
+- Nota de asterisco bajo las 8 opciones: "*Medidas en peso seco/crudo"
+- Modal centrado en viewport visible usando window.parent (iframe-aware)
 
 SUPLEMENTACIÓN
 Toma actualmente: ${supls}

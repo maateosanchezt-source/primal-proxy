@@ -14,9 +14,9 @@ Fuentes: Bebas Neue (títulos), Barlow (cuerpo) — importar Google Fonts.
 Mobile-first responsive.
 CRÍTICO: html{scroll-behavior:smooth} body{overflow-y:auto} — NO poner overflow:hidden en nada que necesite scroll.
 
-Header fijo: "PRIMAL® CLUB" dorado + nombre del miembro + fecha.
+Header NO FIJO (position:static, NO sticky, NO fixed): "PRIMAL® CLUB" dorado + nombre del miembro + datos. El header se scrollea con el contenido, NO se queda pegado arriba. Igual para la barra de acciones y los tabs — TODO es position:static, se scrollea normal con la página.
 
-═══ BARRA DE ACCIONES (sticky debajo del header) ═══
+═══ BARRA DE ACCIONES (NO sticky — position:static) ═══
 4 botones en fila horizontal:
 1. "📥 DESCARGAR PDF" → window.print() con @media print landscape, cada tab en página separada
 2. "📧 ENVIAR POR EMAIL" → mailto: con subject "Mi Protocolo PRIMAL CLUB"
@@ -33,12 +33,22 @@ Header fijo: "PRIMAL® CLUB" dorado + nombre del miembro + fecha.
 }
 
 ═══ TABS DE NAVEGACIÓN (sticky) ═══
-4 tabs horizontales, sticky debajo de la barra de acciones.
+4 tabs horizontales, position:static (NO sticky, NO fixed).
 
 ## TAB 1: MI PLAN DE COMIDAS (activo por defecto)
 
 ### Macros diarios objetivo
 Cards: Calorías, Proteína (g), Carbohidratos (g), Grasa (g). Calculados según perfil.
+
+DISTRIBUCIÓN DE CALORÍAS POR COMIDA (CRÍTICO):
+Calcula el total de calorías diarias del usuario según su perfil (peso, altura, edad, actividad, objetivo).
+Luego DIVIDE ese total entre el número de comidas al día.
+Ejemplo: si necesita 3200 kcal/día y come 3 veces → cada comida ~1067 kcal.
+Si necesita 2400 kcal/día y come 5 veces → cada comida ~480 kcal.
+Las opciones de platos DEBEN tener calorías en torno a esa media (±15%).
+NO generes platos de 400-680 kcal si el usuario necesita 1000+ por comida.
+Ajusta porciones e ingredientes para llegar a las calorías necesarias.
+Genera VARIEDAD de rangos: algunos platos un poco por encima, otros por debajo de la media, pero siempre en rango realista.
 
 ### Calendario semanal
 ARQUITECTURA EFICIENTE (CRÍTICO — DEBE caber en el output):
@@ -92,6 +102,7 @@ Incluir calentamiento y enfriamiento.
 Data en array: const SUPPS=[{nombre,icono,que,para,cuando,dosis,combo,aviso}]
 Cards expandibles generadas por bucle. Tabla rutina (mañana/mediodía/noche).
 IMPORTANTE: Usa SOLO la información de ingredientes y dosis proporcionada en el perfil del usuario. Si no hay datos específicos de un suplemento, muestra SOLO el nombre y "Consulta la etiqueta del producto para información detallada". NUNCA inventes composiciones, dosis ni ingredientes.
+CSS DE CARDS: NO usar text-overflow:ellipsis, NO usar overflow:hidden, NO usar max-height en las cards de suplementos. El subtítulo y la descripción deben mostrarse COMPLETOS sin cortar texto. white-space:normal, overflow:visible.
 
 ## TAB 4: MI PROGRESO
 HTML mínimo: formulario check-in visual (peso, energía/sueño/libido 1-10, notas).
@@ -105,6 +116,7 @@ Historial: "Mes 1 - Plan generado ✓"
 - Restricciones: respetarlas en TODAS las opciones.
 - Tono directo, masculino, sin rodeos. Tutear.
 - Todo funcional: JS que funcione, botones que hagan click, desplegables que abran.
+- SINTAXIS JS PERFECTA (CRÍTICO): Revisa que CADA array cierre con ], cada objeto con }, cada función con }. Los strings dentro de arrays de datos NUNCA deben contener comillas sin escapar. Usa comillas simples para strings dentro de arrays JS. Si un plato tiene apóstrofe, escápalo con backslash. Un solo error de sintaxis rompe TODO el plan.
 - SCROLL SUAVE: nada de overflow:hidden en contenedores scrolleables.
 - COMPLETO: todos los platos, ejercicios, ingredientes. Sin "..." ni "etc".
 - EFICIENCIA MÁXIMA (LÍMITE DE TOKENS — LEE ESTO):
@@ -167,8 +179,44 @@ export default async function handler(req, res) {
       
       // Check if output was truncated (missing closing tags)
       if (!htmlContent.includes('</html>')) {
-        // Force-close the HTML to prevent broken page
         htmlContent += '\n</script></body></html>';
+      }
+
+      // Validate JS syntax before returning
+      const scriptMatch = htmlContent.match(/<script>([\s\S]*?)<\/script>/);
+      if (scriptMatch) {
+        try {
+          new Function(scriptMatch[1]);
+        } catch (syntaxErr) {
+          console.error('JS syntax error in generated plan:', syntaxErr.message);
+          // Try common fixes: unmatched brackets/parens
+          let fixedJs = scriptMatch[1];
+          // Count brackets and parens
+          const opens = (fixedJs.match(/\{/g)||[]).length;
+          const closes = (fixedJs.match(/\}/g)||[]).length;
+          if (opens > closes) fixedJs += '}'.repeat(opens - closes);
+          const oParens = (fixedJs.match(/\(/g)||[]).length;
+          const cParens = (fixedJs.match(/\)/g)||[]).length;
+          if (oParens > cParens) fixedJs += ')'.repeat(oParens - cParens);
+          const oBracks = (fixedJs.match(/\[/g)||[]).length;
+          const cBracks = (fixedJs.match(/\]/g)||[]).length;
+          if (oBracks > cBracks) fixedJs += ']'.repeat(oBracks - cBracks) + ';';
+          
+          try {
+            new Function(fixedJs);
+            htmlContent = htmlContent.replace(scriptMatch[1], fixedJs);
+            console.log('JS syntax auto-fixed successfully');
+          } catch (e2) {
+            // Can't auto-fix — return with warning flag
+            console.error('JS auto-fix failed:', e2.message);
+            return res.status(200).json({ 
+              success: true, 
+              html: htmlContent, 
+              usage: data.usage,
+              jsError: syntaxErr.message 
+            });
+          }
+        }
       }
 
       return res.status(200).json({ success: true, html: htmlContent, usage: data.usage });
@@ -213,7 +261,7 @@ export default async function handler(req, res) {
 const SUPP_DATA = `
 - NMN MACA (Testosterone+): Ingredientes: Extracto de Maca Negra y Roja, L-Arginina, Taurina, Maltodextrina, Polvo de Asta de Ciervo, Extracto de Brócoli, Extracto de Semilla de Calabaza, Extracto de Hoja de Nabo. Dosis: 2 cápsulas al día. Tomar preferiblemente en ayunas por la mañana con agua. La L-Arginina mejora el flujo sanguíneo y la Maca Negra y Roja es adaptógena y apoya la producción hormonal natural.
 - Turkesterona & Tongkat Ali: Composición pendiente de etiqueta. Indicar: "Consulta la etiqueta del producto para composición y dosis."
-- Secret Drops (Rendimiento Sexual): Gotas orales 30ml. Fórmula con mezcla propietaria de ingredientes naturales con propiedades vasodilatadoras. Mejora el flujo sanguíneo, sensibilidad y rendimiento. Efecto relajante que reduce estrés y ansiedad. Dosis: unas gotas al día vía oral. Almacenar en lugar fresco y seco. Vida útil: 3 años.
+- Secret Drops (Rendimiento Sexual): Aceite esencial de masaje íntimo 30ml. Fórmula con mezcla propietaria de ingredientes naturales con propiedades vasodilatadoras. Aplicar unas gotas en las zonas íntimas antes del momento. Mejora el flujo sanguíneo, sensibilidad y rendimiento. NO es de uso oral — es de aplicación tópica externa. Almacenar en lugar fresco y seco. Vida útil: 3 años.
 - Shilajit (Concentrado): Resina pura de Shilajit del Himalaya 600mg por toma. Contiene Ácido Fúlvico (75%+) y 85+ minerales traza (magnesio, zinc, selenio, hierro). Dosis: 1 toma al día, mezclar con agua, batido o comida. El ácido fúlvico maximiza la absorción de otros nutrientes y minerales. Vegano, sin OGM. Almacenar en lugar fresco.
 `;
 

@@ -1,4 +1,75 @@
 // ═══════════════════════════════════════════════════════════════
+// HMAC AUTH — URL firmada desde email template
+// ═══════════════════════════════════════════════════════════════
+import crypto from 'crypto';
+
+const HMAC_SECRET = process.env.PRIMAL_HMAC_SECRET || '';
+const PLAN_COOLDOWN_MS = 30 * 24 * 60 * 60 * 1000;
+const ORDER_VALIDITY_MS = 31 * 24 * 60 * 60 * 1000;
+
+const planTimestamps = new Map();
+
+function verifyHmac(payload, signature) {
+    if (!HMAC_SECRET || !payload || !signature) return false;
+    const expected = crypto.createHmac('sha256', HMAC_SECRET).update(String(payload)).digest('hex');
+    try {
+          return crypto.timingSafeEqual(Buffer.from(expected, 'hex'), Buffer.from(signature, 'hex'));
+    } catch (e) {
+          return false;
+    }
+}
+
+function checkAuth(req, res) {
+    const body = req.body || {};
+    const { order_number, order_ts, signature } = body;
+  
+    if (!order_number || !order_ts || !signature) {
+          res.status(401).json({
+                  error: 'auth_missing',
+                  message: 'Falta autenticación. Abre el link desde tu email de compra.'
+          });
+          return false;
+    }
+  
+    const payload = String(order_number) + '|' + String(order_ts);
+    if (!verifyHmac(payload, signature)) {
+          res.status(401).json({
+                  error: 'auth_invalid',
+                  message: 'Enlace no válido. Pide un link nuevo contactando con soporte.'
+          });
+          return false;
+    }
+  
+    const now = Date.now();
+    const orderMs = Number(order_ts) * 1000;
+  
+    if (now - orderMs > ORDER_VALIDITY_MS) {
+          res.status(403).json({
+                  error: 'order_expired',
+                  message: 'Tu acceso ha expirado. Tu siguiente cobro renovará el acceso.'
+          });
+          return false;
+    }
+  
+    const lastPlanTs = planTimestamps.get(order_number);
+    if (lastPlanTs && (now - lastPlanTs) < PLAN_COOLDOWN_MS) {
+          const remainingDays = Math.ceil((PLAN_COOLDOWN_MS - (now - lastPlanTs)) / 86400000);
+          const nextDate = new Date(lastPlanTs + PLAN_COOLDOWN_MS).toISOString();
+          res.status(429).json({
+                  error: 'cooldown_plan',
+                  remaining_days: remainingDays,
+                  next_available: nextDate,
+                  message: `Podrás generar un plan nuevo en ${remainingDays} día${remainingDays === 1 ? '' : 's'}`
+          });
+          return false;
+    }
+  
+    planTimestamps.set(order_number, now);
+    return true;
+}
+// ═══════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════
 // PRIMAL CLUB V2 — JSON-only proxy
 // api/claude.js
 //
@@ -410,6 +481,7 @@ export default async function handler(req, res) {
 
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  if (!checkAuth(req, res)) return;
 
   try {
     const { mode, profile } = req.body || {};

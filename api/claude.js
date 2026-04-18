@@ -325,7 +325,14 @@ avanzado (+4 años): 4-5 series variadas, INCLUIR tempo (ej "3-1-X-0") y calidad
 7. ✓ Si num_comidas < 6: todas las comidas tienen post_entreno=false
 8. ✓ Al menos 2 opciones por comida con precio < media_presu
 9. ✓ Restricciones respetadas en TODAS las opciones
-10. ✓ JSON válido, sin texto alrededor, sin markdown`;
+10. ✓ JSON válido, sin texto alrededor, sin markdown
+
+═══ REGLA DE ARRANQUE (CRÍTICA) ═══
+Tu primer carácter DEBE ser {
+Tu último carácter DEBE ser }
+NO escribas nada antes del primer { (ni espacios, ni saltos de línea, ni comentarios, ni markdown).
+NO escribas nada después del último } (ni explicaciones, ni cierres, ni frases).
+Empieza directamente con { y termina limpio con }.`;
 
 // ═══════════════════════════════════════════════════════════════
 
@@ -374,8 +381,7 @@ export default async function handler(req, res) {
         stream: true,
         system: SYSTEM_PROMPT,
         messages: [
-          { role: 'user', content: userPrompt },
-          { role: 'assistant', content: '{' }   // prefill para forzar JSON
+          { role: 'user', content: userPrompt }
         ]
       })
     });
@@ -391,9 +397,6 @@ export default async function handler(req, res) {
     res.setHeader('Connection', 'keep-alive');
     res.setHeader('X-Accel-Buffering', 'no');
     res.flushHeaders();
-
-    // Envía el "{" inicial que pusimos como prefill
-    res.write(`data: ${JSON.stringify({ t: '{' })}\n\n`);
 
     const reader = apiResp.body.getReader();
     const decoder = new TextDecoder();

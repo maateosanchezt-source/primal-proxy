@@ -277,14 +277,58 @@ Redondea precio_kg a 2 decimales tras aplicar factor.
 
 ═══ 8 OPCIONES POR COMIDA (ESTRUCTURA FIJA) ═══
 Cada comida DEBE tener EXACTAMENTE 8 opciones con esta distribución FIJA:
-- 2 × tipo "gourmet"    (elaboradas, ~30-45 min, precio medio-alto, platos de referencia — paella fit, salmón al horno con guarnición, ternera guisada, etc.)
-- 2 × tipo "rapida"     (≤15 min preparación, ingredientes básicos, coherente gastronómicamente)
-- 4 × tipo "funcional"  (equilibradas, ~20 min, versiones fit adaptadas a las COMIDAS FAVORITAS del usuario cuando sea posible)
+
+- 2 × tipo "gourmet"
+  Carácter: platos reconocibles, estándar y bien ejecutados. Sirven como REFERENCIA segura — recetas clásicas que cualquiera identifica (salmón al horno con guarnición, pollo al ajillo con arroz, lentejas guisadas, merluza a la plancha con patata). NO necesitan estar personalizadas al usuario. 20-40 min de preparación, precio medio-alto. Son el estándar del menú.
+
+- 2 × tipo "rapida"
+  Carácter: supervivencia fit, ≤15 min, ingredientes básicos, bajo coste. Patrones simples repetibles: pollo + arroz, tortilla + pan, bowl de atún, bocadillo integral, yogur con avena. No buscan creatividad, buscan RAPIDEZ y economía. Son la opción "cuando no te apetece cocinar".
+
+- 4 × tipo "funcional"
+  Carácter: AQUÍ es donde personalizas al usuario. Son las opciones con más carácter gastronómico, creativas, adaptadas a sus COMIDAS FAVORITAS y preferencias. Estas son las "ricas" del menú, las que demuestran que el plan está hecho para esta persona concreta. ~15-25 min, precio medio. Usan referencias gastronómicas sugerentes si el usuario las ha mencionado (ej. si le gustan los wraps mexicanos → wrap de pollo con guacamole; si le gusta la comida asiática → salteado con soja y jengibre; si le encanta la pasta → pasta integral con boloñesa magra). Deben ser las más apetecibles.
 
 COHERENCIA GASTRONÓMICA (todas las opciones):
 - Recetas realistas, no combinaciones raras (no mezcles salmón con plátano en un mismo plato)
-- Platos de referencia española cuando aplique (tortilla, lentejas, arroz con pollo, paella fit, ensalada templada, etc)
+- Platos de referencia española cuando aplique
 - Al menos 2 opciones con precio_eur < media_presu_comida (las 2 rapidas suelen ser las más baratas)
+
+═══ REGLA ESTRICTA DE KCAL POR OPCIÓN (CRÍTICA) ═══
+Esto es el pilar central del plan. Si el cliente elige por apetencia, DEBE cuadrar calóricamente sin importar qué opción escoja.
+
+Paso 1 — Define un kcal_target para CADA comida según el perfil del cliente:
+
+  · Si num_comidas ≤ 3:
+      kcal_target_comida_i = kcal_objetivo_diario / num_comidas   (todas iguales)
+
+  · Si num_comidas ≥ 4:
+      Reparto flexible según el carácter de cada slot (ver guía creativa arriba).
+      Regla orientativa por número total de comidas:
+        4 comidas: 25% / 15% / 35% / 25%
+        5 comidas: 22% / 13% / 30% / 15% / 20%
+        6 comidas: 22% / 12% / 28% / 13% / 20% / 5%   (C6 snack post-entreno pequeño)
+      Ajusta si hace falta para que la suma total = kcal_objetivo_diario.
+
+Paso 2 — Para CADA comida, TODAS sus 8 opciones deben caer dentro de esta ventana:
+
+  · Si num_comidas ≤ 3:  [kcal_target × 0.70, kcal_target × 1.30]  (margen ±30%)
+  · Si num_comidas ≥ 4:  [kcal_target × 0.50, kcal_target × 1.50]  (margen ±50%)
+
+  Ejemplo con 5 comidas y objetivo 3000 kcal:
+    C1 (desayuno): target = 660 kcal → opciones entre 330 y 990 kcal
+    C2 (media mañana): target = 390 kcal → opciones entre 195 y 585 kcal
+    C3 (comida): target = 900 kcal → opciones entre 450 y 1350 kcal
+    C4 (merienda): target = 450 kcal → opciones entre 225 y 675 kcal
+    C5 (cena): target = 600 kcal → opciones entre 300 y 900 kcal
+
+Paso 3 — Dentro de esa ventana, AGRUPA las opciones para que la media se quede cerca del target:
+  - Unas opciones por encima del target, otras por debajo, media ≈ target ±10%
+  - NO metas todas en el extremo superior ni en el inferior
+  - NO hagas que las 8 opciones sean casi idénticas en kcal (eso es pobre variedad)
+
+Paso 4 — Validación agregada (ya la conoces):
+  sum(media_kcal_i por todas las comidas) ∈ [kcal_objetivo × 0.95, kcal_objetivo × 1.05]
+
+IMPORTANTE: tienes permiso (y obligación) de pensar detenidamente en este paso. No pasa nada si tardas más en generar el plan; lo que NO puede pasar es que las opciones no cuadren.
 
 ═══ NÚMERO DE COMIDAS Y GUÍA CREATIVA ═══
 num_comidas = EXACTAMENTE el número que el usuario eligió (2-6). No añadas ni restes.
@@ -292,15 +336,15 @@ num_comidas = EXACTAMENTE el número que el usuario eligió (2-6). No añadas ni
 Usa la numeración como GUÍA CREATIVA para inspirar el carácter gastronómico de cada comida, pero NUNCA nombres las comidas así en el JSON. El campo "num" es 1, 2, 3... sin más. Los horarios los gestiona el cliente.
 
 Guía mental de carácter gastronómico según total de comidas:
-- 2 comidas: C1 comida principal (tipo almuerzo), C2 cena ligera
-- 3 comidas: C1 desayuno, C2 almuerzo, C3 cena
-- 4 comidas: C1 desayuno, C2 media mañana, C3 comida, C4 cena
-- 5 comidas: C1 desayuno, C2 media mañana, C3 comida, C4 merienda, C5 cena
-- 6 comidas: C1 desayuno, C2 media mañana, C3 comida, C4 merienda, C5 cena, C6 SNACK POST-ENTRENO
+- 2 comidas: C1 comida principal (tipo almuerzo fuerte), C2 cena normal
+- 3 comidas: C1 desayuno, C2 almuerzo principal, C3 cena
+- 4 comidas: C1 desayuno, C2 media mañana (ligero), C3 comida (la más fuerte), C4 cena
+- 5 comidas: C1 desayuno, C2 media mañana (snack), C3 comida (la más fuerte), C4 merienda (snack), C5 cena
+- 6 comidas: C1 desayuno, C2 media mañana (snack), C3 comida (la más fuerte), C4 merienda (snack), C5 cena, C6 SNACK POST-ENTRENO (muy pequeño)
 
 REGLA POST-ENTRENO:
 - SOLO si num_comidas = 6 → la COMIDA 6 tiene post_entreno=true y carácter SNACK post-entreno:
-  · Porciones más pequeñas (300-500 kcal)
+  · Porciones pequeñas, alrededor del kcal_target calculado (no forzar un rango fijo)
   · Alta proteína (30-45g) — carne magra, pescado blanco, whey, claras, yogur griego
   · Carbos de asimilación rápida (arroz blanco, plátano, patata, pan blanco, miel)
   · Baja grasa (<8g)
@@ -316,16 +360,18 @@ intermedio (1-4 años): 4 series × 8-12 reps, barra libre + mancuernas, progres
 avanzado (+4 años): 4-5 series variadas, INCLUIR tempo (ej "3-1-X-0") y calidad (1-10) en TODOS los ejercicios.
 
 ═══ VALIDACIONES FINALES (hacer mentalmente antes de devolver) ═══
-1. ✓ sum(media_kcal de cada comida) ∈ [kcal_objetivo × 0.95, kcal_objetivo × 1.05]
-2. ✓ Cada opción: kcal coherente con macros (P*4+C*4+G*9) ±8%
-3. ✓ Cada opción: precio_eur = sum(g/1000 × precio_kg) redondeado a 2 decimales
-4. ✓ Cada comida tiene exactamente 8 opciones: 2 gourmet + 2 rapida + 4 funcional
-5. ✓ num_comidas = exactamente el número elegido por el usuario (2-6)
-6. ✓ Si num_comidas = 6: COMIDA 6 tiene post_entreno=true con perfil snack post-entreno; el resto post_entreno=false
-7. ✓ Si num_comidas < 6: todas las comidas tienen post_entreno=false
-8. ✓ Al menos 2 opciones por comida con precio < media_presu
-9. ✓ Restricciones respetadas en TODAS las opciones
-10. ✓ JSON válido, sin texto alrededor, sin markdown
+1. ✓ Has calculado un kcal_target para cada comida (reparto según num_comidas)
+2. ✓ Las 8 opciones de cada comida caen dentro de su ventana de kcal_target (±30% si ≤3 comidas, ±50% si ≥4)
+3. ✓ La media de las 8 opciones de cada comida ≈ kcal_target ±10%
+4. ✓ sum(media_kcal de todas las comidas) ∈ [kcal_objetivo × 0.95, kcal_objetivo × 1.05]
+5. ✓ Cada opción: kcal coherente con macros (P*4+C*4+G*9) ±8%
+6. ✓ Cada opción: precio_eur = sum(g/1000 × precio_kg) redondeado a 2 decimales
+7. ✓ Cada comida tiene exactamente 8 opciones: 2 gourmet + 2 rapida + 4 funcional
+8. ✓ Las 4 funcional son las ADAPTADAS a los gustos del cliente (no las gourmet ni las rapidas)
+9. ✓ num_comidas = exactamente el número elegido por el usuario (2-6)
+10. ✓ Si num_comidas = 6: COMIDA 6 tiene post_entreno=true con perfil snack post-entreno
+11. ✓ Restricciones respetadas en TODAS las opciones
+12. ✓ JSON válido, sin texto alrededor, sin markdown
 
 ═══ REGLA DE ARRANQUE (CRÍTICA) ═══
 Tu primer carácter DEBE ser {
@@ -514,8 +560,16 @@ ${comidasDia === 6
 Supermercado: ${p.supermercado || 'Mercadona'}
 Presupuesto semanal: ${presuSem}€
 Comidas favoritas del usuario: ${p.comidas_favoritas || 'variado'}
-→ Las 4 opciones "funcional" de cada comida deben adaptarse a estos gustos cuando sea posible
-→ Las 2 "gourmet" y 2 "rapida" pueden ser más libres (coherencia gastronómica)
+→ Las 4 opciones "funcional" son las que se ADAPTAN a estos gustos con coherencia gastronómica y carácter — son las opciones más atractivas, creativas y personalizadas del menú
+→ Las 2 "gourmet" son platos estándar reconocibles (referencia segura, no necesitan personalizar)
+→ Las 2 "rapida" son opciones simples ≤15 min para supervivencia fit (no necesitan personalizar)
+
+REGLA CRÍTICA DE KCAL — NO FALLAR:
+→ Primero calcula kcal_target para cada comida según reparto (ver sección "REGLA ESTRICTA DE KCAL POR OPCIÓN" en system prompt)
+→ Luego asegúrate de que las 8 opciones de cada comida caen dentro de la ventana correspondiente
+→ Con ${comidasDia} comidas → ventana ±${comidasDia <= 3 ? '30' : '50'}% del kcal_target de cada comida
+→ La media de las 8 opciones por comida debe estar cerca del kcal_target (±10%)
+→ Piensa con calma este paso antes de devolver el JSON — es el error más grave si falla
 
 SUPLEMENTACIÓN
 Toma: ${supls}

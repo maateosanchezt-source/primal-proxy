@@ -41,14 +41,28 @@ Si hay que elegir entre acortar contenido o generar JSON inválido, SIEMPRE acor
     "grasas_g": number,
     "num_comidas": number
   },
+  "suplementos": [
+    {
+      "nombre": string,             // usa EXACTAMENTE los nombres de etiqueta
+      "icono": string,              // 1 emoji
+      "composicion": string,        // copiado de etiqueta
+      "beneficios": string,         // copiado de etiqueta
+      "cuando_tomar": string,
+      "dosis": string,
+      "combinar_con": string
+    }
+  ],
+  "rutina_suplementos": [
+    { "momento": string, "suplemento": string, "dosis": string }
+  ],
   "comidas": [
     {
       "num": number,                // 1, 2, 3, ...
       "post_entreno": boolean,      // true SOLO si es la comida post-entreno
-      "opciones": [                 // EXACTAMENTE 8 opciones: 2 gourmet + 2 rapida + 4 funcional
+      "opciones": [                 // EXACTAMENTE 8 opciones: 2 gourmet + 2 rapida + 4 personalizada
         {
           "nombre": string,         // nombre real del plato, con coherencia gastronómica
-          "tipo": "gourmet" | "rapida" | "funcional",
+          "tipo": "gourmet" | "rapida" | "personalizada",
           "ingredientes": [
             {
               "nombre": string,           // nombre del alimento
@@ -92,21 +106,7 @@ Si hay que elegir entre acortar contenido o generar JSON inválido, SIEMPRE acor
         ]
       }
     ]
-  },
-  "suplementos": [
-    {
-      "nombre": string,             // usa EXACTAMENTE los nombres de etiqueta
-      "icono": string,              // 1 emoji
-      "composicion": string,        // copiado de etiqueta
-      "beneficios": string,         // copiado de etiqueta
-      "cuando_tomar": string,
-      "dosis": string,
-      "combinar_con": string
-    }
-  ],
-  "rutina_suplementos": [
-    { "momento": string, "suplemento": string, "dosis": string }
-  ]
+  }
 }
 
 ═══ CÁLCULO DE MACROS OBJETIVO ═══
@@ -284,7 +284,7 @@ Cada comida DEBE tener EXACTAMENTE 8 opciones con esta distribución FIJA:
 - 2 × tipo "rapida"
   Carácter: supervivencia fit, ≤15 min, ingredientes básicos, bajo coste. Patrones simples repetibles: pollo + arroz, tortilla + pan, bowl de atún, bocadillo integral, yogur con avena. No buscan creatividad, buscan RAPIDEZ y economía. Son la opción "cuando no te apetece cocinar".
 
-- 4 × tipo "funcional"
+- 4 × tipo "personalizada"
   Carácter: AQUÍ es donde personalizas al usuario. Son las opciones con más carácter gastronómico, creativas, adaptadas a sus COMIDAS FAVORITAS y preferencias. Estas son las "ricas" del menú, las que demuestran que el plan está hecho para esta persona concreta. ~15-25 min, precio medio. Usan referencias gastronómicas sugerentes si el usuario las ha mencionado (ej. si le gustan los wraps mexicanos → wrap de pollo con guacamole; si le gusta la comida asiática → salteado con soja y jengibre; si le encanta la pasta → pasta integral con boloñesa magra). Deben ser las más apetecibles.
 
 COHERENCIA GASTRONÓMICA (todas las opciones):
@@ -320,12 +320,20 @@ Paso 2 — Para CADA comida, TODAS sus 8 opciones deben caer dentro de esta vent
     C4 (merienda): target = 450 kcal → opciones entre 225 y 675 kcal
     C5 (cena): target = 600 kcal → opciones entre 300 y 900 kcal
 
-Paso 3 — Dentro de esa ventana, AGRUPA las opciones para que la media se quede cerca del target:
-  - Unas opciones por encima del target, otras por debajo, media ≈ target ±10%
-  - NO metas todas en el extremo superior ni en el inferior
-  - NO hagas que las 8 opciones sean casi idénticas en kcal (eso es pobre variedad)
+Paso 3 — Dentro de esa ventana, AGRUPA las opciones para que la MEDIA de las 8 cuadre con el target:
+  - La media de las 8 opciones debe caer DENTRO de [target × 0.97, target × 1.05]
+  - Esta regla es INNEGOCIABLE. Si al terminar la media queda fuera, ajusta gramajes hasta que cuadre ANTES de devolver.
+  - La variedad individual es bienvenida (una opción ligera de 400 junto a una abundante de 900 es perfecto siempre que la media cuadre)
+  - NO hagas que las 8 opciones sean casi idénticas en kcal
+  - NO dejes todas las opciones sesgadas hacia abajo ni hacia arriba del target
 
-Paso 4 — Validación agregada (ya la conoces):
+EJEMPLO CONCRETO — target de comida = 700 kcal con 5 comidas (ventana 350-1050):
+  ✗ INCORRECTO: 560, 580, 600, 610, 620, 640, 660, 680 (media 619 = -12%: TODAS bajo target → déficit para el cliente)
+  ✗ INCORRECTO: 700, 700, 700, 700, 700, 700, 700, 700 (cero variedad, está prohibido)
+  ✓ CORRECTO:   420, 560, 640, 680, 720, 780, 880, 1020 (media 713: cuadra target; alta variedad; el cliente come según hambre y compensa otras comidas)
+  ✓ CORRECTO:   620, 650, 680, 700, 710, 740, 770, 800 (media 709: cuadra; variedad moderada)
+
+Paso 4 — Validación agregada:
   sum(media_kcal_i por todas las comidas) ∈ [kcal_objetivo × 0.95, kcal_objetivo × 1.05]
 
 IMPORTANTE: tienes permiso (y obligación) de pensar detenidamente en este paso. No pasa nada si tardas más en generar el plan; lo que NO puede pasar es que las opciones no cuadren.
@@ -352,7 +360,7 @@ REGLA POST-ENTRENO:
   · Preparación rápida (5-15 min)
 - Si num_comidas < 6 → TODAS las comidas tienen post_entreno=false, perfil normal
 
-Las 8 opciones de cada comida mantienen la estructura 2 gourmet + 2 rapida + 4 funcional incluso en la COMIDA 6 snack — pero "gourmet snack" es un batido elaborado, "rapida snack" es algo de 5 min, "funcional snack" es un tupper balanceado para llevar, etc.
+Las 8 opciones de cada comida mantienen la estructura 2 gourmet + 2 rapida + 4 personalizada incluso en la COMIDA 6 snack — pero "gourmet snack" es un batido elaborado, "rapida snack" es algo de 5 min, "personalizada snack" es un tupper balanceado para llevar, etc.
 
 ═══ EJERCICIOS SEGÚN NIVEL ═══
 principiante (0-1 año): 3 series × 10-15 reps, ejercicios básicos con máquinas o peso corporal, SIN tempo ni calidad. tempo=null, calidad=null.
@@ -362,16 +370,17 @@ avanzado (+4 años): 4-5 series variadas, INCLUIR tempo (ej "3-1-X-0") y calidad
 ═══ VALIDACIONES FINALES (hacer mentalmente antes de devolver) ═══
 1. ✓ Has calculado un kcal_target para cada comida (reparto según num_comidas)
 2. ✓ Las 8 opciones de cada comida caen dentro de su ventana de kcal_target (±30% si ≤3 comidas, ±50% si ≥4)
-3. ✓ La media de las 8 opciones de cada comida ≈ kcal_target ±10%
-4. ✓ sum(media_kcal de todas las comidas) ∈ [kcal_objetivo × 0.95, kcal_objetivo × 1.05]
+3. ✓ La MEDIA de las 8 opciones de cada comida ∈ [target × 0.97, target × 1.05] — INNEGOCIABLE
+4. ✓ sum(media_kcal de todas las comidas) ∈ [kcal_objetivo × 0.97, kcal_objetivo × 1.05]
 5. ✓ Cada opción: kcal coherente con macros (P*4+C*4+G*9) ±8%
 6. ✓ Cada opción: precio_eur = sum(g/1000 × precio_kg) redondeado a 2 decimales
-7. ✓ Cada comida tiene exactamente 8 opciones: 2 gourmet + 2 rapida + 4 funcional
-8. ✓ Las 4 funcional son las ADAPTADAS a los gustos del cliente (no las gourmet ni las rapidas)
+7. ✓ Cada comida tiene exactamente 8 opciones: 2 gourmet + 2 rapida + 4 personalizada
+8. ✓ Las 4 personalizada son las ADAPTADAS a los gustos del cliente (no las gourmet ni las rapidas)
 9. ✓ num_comidas = exactamente el número elegido por el usuario (2-6)
 10. ✓ Si num_comidas = 6: COMIDA 6 tiene post_entreno=true con perfil snack post-entreno
 11. ✓ Restricciones respetadas en TODAS las opciones
-12. ✓ JSON válido, sin texto alrededor, sin markdown
+12. ✓ suplementos generado SIEMPRE (va justo después de macros en el JSON, no al final)
+13. ✓ JSON válido, sin texto alrededor, sin markdown
 
 ═══ REGLA DE ARRANQUE (CRÍTICA) ═══
 Tu primer carácter DEBE ser {
@@ -423,7 +432,7 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
-        max_tokens: 16000,
+        max_tokens: 24000,
         stream: true,
         system: SYSTEM_PROMPT,
         messages: [
@@ -560,7 +569,7 @@ ${comidasDia === 6
 Supermercado: ${p.supermercado || 'Mercadona'}
 Presupuesto semanal: ${presuSem}€
 Comidas favoritas del usuario: ${p.comidas_favoritas || 'variado'}
-→ Las 4 opciones "funcional" son las que se ADAPTAN a estos gustos con coherencia gastronómica y carácter — son las opciones más atractivas, creativas y personalizadas del menú
+→ Las 4 opciones "personalizada" son las que se ADAPTAN a estos gustos con coherencia gastronómica y carácter — son las opciones más atractivas, creativas y personalizadas del menú
 → Las 2 "gourmet" son platos estándar reconocibles (referencia segura, no necesitan personalizar)
 → Las 2 "rapida" son opciones simples ≤15 min para supervivencia fit (no necesitan personalizar)
 

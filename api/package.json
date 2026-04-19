@@ -1,5 +1,6 @@
 {
-  "name": "primal-proxy",
-  "version": "1.0.0",
-  "description": "API proxy for PRIMAL CLUB"
+    "name": "primal-proxy-api",
+    "version": "1.0.0",
+    "type": "module",
+    "description": "API proxy for PRIMAL CLUB"
 }
